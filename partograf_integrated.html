@@ -1,0 +1,1414 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Digital Partograf WHO – Tabs + Save per KALA</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        .tab-active {
+            border-bottom: 3px solid #2563EB;
+            color: #2563EB;
+            font-weight: 600;
+        }
+
+        .warning-waspada {
+            background-color: #fff3cd;
+        }
+
+        .warning-bertindak {
+            background-color: #f8d7da;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-50 p-6">
+    <div class="max-w-7xl mx-auto bg-white p-6 rounded-2xl shadow">
+        <h1 class="text-2xl font-bold text-center mb-6">🧾 Digital Partograf WHO – Dashboard & Catatan
+        </h1>
+
+        <!-- TABS -->
+        <div class="flex border-b mb-6">
+            <button id="tabPartograf" class="tab-active px-4 py-2">Partograf</button>
+            <button id="tabCatatan" class="px-4 py-2 text-gray-500 hover:text-blue-600">Catatan Persalinan</button>
+            <button id="tabResusitasi" class="px-4 py-2 text-gray-500 hover:text-blue-600">Resusitasi Bayi</button>
+        </div>
+
+        <!-- ====================== TAB 1: PARTOGRAF (FULL) ====================== -->
+        <div id="contentPartograf">
+            <!-- GRAFIK DI ATAS -->
+            <div class="grid grid-cols-2 gap-6 mb-8">
+                <div>
+                    <h3 class="font-semibold text-center mb-1">📈 DJJ (Zona normal 120–160 bpm)</h3>
+                    <canvas id="grafikDJJ" height="120"></canvas>
+                </div>
+                <div>
+                    <h3 class="font-semibold text-center mb-1">📈 Pembukaan Serviks (cm)</h3>
+                    <canvas id="grafikPembukaan" height="120"></canvas>
+                </div>
+            </div>
+            <div class="mb-10">
+                <h3 class="font-semibold text-center mb-1">📊 TD / Nadi / Suhu</h3>
+                <canvas id="grafikVital" height="200"></canvas>
+            </div>
+
+            <!-- DATA PASIEN -->
+            <h2 class="text-xl font-semibold mb-2">🩺 Data Pasien</h2>
+            <form id="pasienForm" class="grid grid-cols-2 gap-4 border p-4 rounded-lg mb-4">
+                <div><label class="font-semibold">No. RM (Otomatis)</label><input type="text" id="noRM"
+                        class="w-full border rounded p-2 bg-gray-100" readonly /></div>
+                <div><label class="font-semibold">Nama Ibu</label><input type="text" id="namaIbu"
+                        class="w-full border rounded p-2" /></div>
+                <div><label class="font-semibold">Tanggal Lahir</label><input type="date" id="tglLahir"
+                        class="w-full border rounded p-2" /></div>
+                <div><label class="font-semibold">Usia</label><input type="number" id="usia"
+                        class="w-full border rounded p-2 bg-gray-100" readonly /></div>
+                <div><label class="font-semibold">G / P / A</label><input type="text" id="gpa"
+                        class="w-full border rounded p-2" placeholder="misal: G2P1A0" /></div>
+                <div><label class="font-semibold">Tanggal Masuk</label><input type="date" id="tglMasuk"
+                        class="w-full border rounded p-2" /></div>
+                <div><label class="font-semibold">Jam Masuk</label><input type="time" id="jamMasuk"
+                        class="w-full border rounded p-2" /></div>
+                <div><label class="font-semibold">Alamat</label><input type="text" id="alamat"
+                        class="w-full border rounded p-2" /></div>
+                <div><label class="font-semibold">Ketuban Pecah Sejak Jam</label><input type="time" id="ketubanPecah"
+                        class="w-full border rounded p-2" /></div>
+                <div><label class="font-semibold">Mules Sejak Jam</label><input type="time" id="mulesJam"
+                        class="w-full border rounded p-2" /></div>
+            </form>
+
+            <div class="text-center mb-8">
+                <button id="simpanPasien" class="bg-blue-600 text-white px-4 py-2 rounded">💾 Simpan Data
+                    Pasien</button>
+                <button id="resetAll" class="bg-red-500 text-white px-4 py-2 rounded">♻️ Reset Semua Data</button>
+            </div>
+
+            <!-- FORM OBSERVASI -->
+            <h2 class="text-xl font-semibold mb-2">🕒 Tambah Observasi Partograf</h2>
+            <form id="observasiForm" class="grid grid-cols-3 gap-4 border p-4 rounded-lg bg-gray-50">
+                <div><label>Tanggal & Jam Observasi</label><input type="datetime-local" id="tglJamObs"
+                        class="w-full border rounded p-2" /></div>
+                <div><label>DJJ (x/menit)</label><input type="number" id="djj" class="w-full border rounded p-2" />
+                </div>
+                <div>
+                    <label>Air Ketuban</label>
+                    <select id="airKetuban" class="w-full border rounded p-2">
+                        <option value="">-- Pilih --</option>
+                        <option>Utuh</option>
+                        <option>Jernih</option>
+                        <option>Mekonium</option>
+                        <option>Darah</option>
+                        <option>Kering</option>
+                    </select>
+                </div>
+                <div><label>Penyusupan (0-3)</label><input type="number" id="penyusupan" min="0" max="3"
+                        class="w-full border rounded p-2" /></div>
+                <div><label>Pembukaan Serviks (cm)</label><input type="number" id="pembukaan"
+                        class="w-full border rounded p-2" /></div>
+                <div>
+                    <label>Kontraksi / 10 Menit</label>
+                    <select id="kontraksi" class="w-full border rounded p-2">
+                        <option value="">-- Pilih --</option>
+                        <option>
+                            < 20</option>
+                        <option>20 - 40</option>
+                        <option>> 40</option>
+                    </select>
+                </div>
+                <div><label>Oksitosin</label><input type="text" id="oksitosin" class="w-full border rounded p-2" />
+                </div>
+                <div><label>Obat & Cairan IV</label><input type="text" id="obatIV" class="w-full border rounded p-2" />
+                </div>
+                <div><label>Nadi</label><input type="number" id="nadi" class="w-full border rounded p-2" /></div>
+                <div>
+                    <label>Tekanan Darah (mmHg)</label>
+                    <div class="flex gap-2">
+                        <input type="number" id="tdSistolik" class="w-1/2 border rounded p-2" placeholder="Sistolik" />
+                        <input type="number" id="tdDiastolik" class="w-1/2 border rounded p-2"
+                            placeholder="Diastolik" />
+                    </div>
+                </div>
+                <div><label>Suhu (°C)</label><input type="number" step="0.1" id="suhu"
+                        class="w-full border rounded p-2" /></div>
+                <div><label>Urin</label><input type="text" id="urin" class="w-full border rounded p-2" /></div>
+            </form>
+
+            <div class="text-center mt-4">
+                <button id="tambahObs" class="bg-green-600 text-white px-4 py-2 rounded">➕ Tambah Observasi</button>
+            </div>
+
+            <!-- TABEL OBSERVASI -->
+            <h2 class="text-xl font-semibold mt-8 mb-2">📋 Data Observasi Partograf</h2>
+            <table class="w-full border text-sm">
+                <thead class="bg-gray-200">
+                    <tr>
+                        <th class="border p-2">Tanggal & Jam</th>
+                        <th class="border p-2">DJJ</th>
+                        <th class="border p-2">Air Ketuban</th>
+                        <th class="border p-2">Penyusupan</th>
+                        <th class="border p-2">Pembukaan</th>
+                        <th class="border p-2">Kontraksi</th>
+                        <th class="border p-2">Oksitosin</th>
+                        <th class="border p-2">Obat IV</th>
+                        <th class="border p-2">Nadi</th>
+                        <th class="border p-2">TD</th>
+                        <th class="border p-2">Suhu</th>
+                        <th class="border p-2">Urin</th>
+                        <th class="border p-2">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="tabelObs" class="text-center"></tbody>
+            </table>
+        </div>
+
+        <!-- =================== TAB 2: CATATAN PERSALINAN (SAVE per KALA) =================== -->
+        <div id="contentCatatan" class="hidden">
+            <h2 class="text-xl font-semibold mb-2">📋 Catatan Persalinan</h2>
+
+            <!-- Identitas tarik dari pasien -->
+            <div class="grid grid-cols-2 gap-4 border p-4 rounded-lg mb-6">
+                <div><label>No. RM</label><input type="text" id="noRMCatatan"
+                        class="w-full border rounded p-2 bg-gray-100" readonly /></div>
+                <div><label>Nama Ibu</label><input type="text" id="namaIbuCatatan"
+                        class="w-full border rounded p-2 bg-gray-100" readonly /></div>
+            </div>
+
+            <!-- 🩷 KALA I -->
+            <h3 class="text-lg font-semibold mb-2">🩷 KALA I</h3>
+            <div class="border p-4 rounded-lg mb-4 grid grid-cols-2 gap-4">
+                <div><label>Patogram melewati garis waspada?</label><input id="patogram"
+                        class="w-full border rounded p-2" />
+                </div>
+                <div><label>Masalah lain, sebutkan </label><input id="masalahKala1" class="w-full border rounded p-2" />
+                </div>
+                <div class="col-span-2"><label>Penatalaksanaan Masalah Tersebut</label><textarea id="tatalaksanaKala1"
+                        class="w-full border rounded p-2"></textarea></div>
+                <div class="col-span-2"><label>Hasilnya</label><textarea id="hasilKala2"
+                        class="w-full border rounded p-2"></textarea></div>
+            </div>
+            <button id="simpanKala1" class="bg-blue-600 text-white px-4 py-2 rounded mb-8">💾 Simpan KALA I</button>
+
+            <!-- 💛 KALA II -->
+            <h3 class="text-lg font-semibold mb-2">💛 KALA II</h3>
+            <div class="border p-4 rounded-lg mb-4 grid grid-cols-2 gap-4">
+                <div>
+                    <label>Pendamping saat persalinan</label>
+                    <select id="pendampingKala2" class="w-full border rounded p-2">
+                        <option value="">-- Pilih --</option>
+                        <option>Suami</option>
+                        <option>Keluarga</option>
+                        <option>Teman</option>
+                        <option>Dukun</option>
+                        <option>Tidak ada</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Episiotomi dilakukan?</label>
+                    <select id="episiotomi" class="w-full border rounded p-2">
+                        <option value="">-- Pilih --</option>
+                        <option>Ya</option>
+                        <option>Tidak</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Gawat janin terjadi?</label>
+                    <select id="gawatJanin" class="w-full border rounded p-2">
+                        <option value="">-- Pilih --</option>
+                        <option>Ya</option>
+                        <option>Tidak</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Distosia bahu?</label>
+                    <select id="distosiaBahu" class="w-full border rounded p-2">
+                        <option value="">-- Pilih --</option>
+                        <option>Ya</option>
+                        <option>Tidak</option>
+                    </select>
+                </div>
+                <div class="col-span-2"><label>Masalah lain (isi 'tidak ada' jika tidak ditemukan)</label><textarea
+                        id="masalahKala2" class="w-full border rounded p-2"></textarea></div>
+                <div class="col-span-2"><label>Tindakan yang dilakukan</label><textarea id="tindakanKala2"
+                        class="w-full border rounded p-2"></textarea></div>
+                <div class="col-span-2"><label>Hasil tindakan / kondisi ibu & janin</label><textarea id="hasilKala2"
+                        class="w-full border rounded p-2"></textarea></div>
+
+            </div>
+            <button id="simpanKala2" class="bg-blue-600 text-white px-4 py-2 rounded mb-8">💾 Simpan KALA II</button>
+
+            <!-- 💚 KALA III -->
+            <h3 class="text-lg font-semibold mb-2">💚 KALA III</h3>
+            <div class="border p-4 rounded-lg mb-4 grid grid-cols-2 gap-4">
+                <div><label>Lama Kala III (menit)</label><input id="lamaKala3" type="number"
+                        class="w-full border rounded p-2" placeholder="misal: 10" /></div>
+                <div><label>Jumlah Perdarahan (ml)</label><input id="perdarahanKala3" type="number"
+                        class="w-full border rounded p-2" placeholder="misal: 300" /></div>
+                <div>
+                    <label>Pemberian Oksitosin (10 IU IM)</label>
+                    <input type="text" id="oksitosinKala3" class="w-full border rounded p-2"
+                        placeholder="misal: diberikan segera setelah bayi lahir" />
+                </div>
+                <div>
+                    <label>Pemberian Ulang Oksitosin (jika perlu)</label>
+                    <input type="text" id="oksitosinUlangKala3" class="w-full border rounded p-2"
+                        placeholder="misal: 2x ulang jika kontraksi lemah" />
+                </div>
+                <div>
+                    <label>Penegangan Tali Pusat Terkendali</label>
+                    <select id="taliPusat" class="w-full border rounded p-2">
+                        <option value="">-- Pilih --</option>
+                        <option>Ya, dilakukan</option>
+                        <option>Tidak dilakukan</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Masase Fundus Uteri</label>
+                    <select id="masaseFundus" class="w-full border rounded p-2">
+                        <option value="">-- Pilih --</option>
+                        <option>Ya, dilakukan</option>
+                        <option>Tidak dilakukan</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Plasenta lahir lengkap (intact)</label>
+                    <select id="plasentaLengkap" class="w-full border rounded p-2">
+                        <option value="">-- Pilih --</option>
+                        <option>Ya, lengkap</option>
+                        <option>Tidak lengkap</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Plasenta tidak lahir > 30 menit</label>
+                    <select id="plasenta30menit" class="w-full border rounded p-2">
+                        <option value="">-- Pilih --</option>
+                        <option>Ya</option>
+                        <option>Tidak</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Laserasi</label>
+                    <select id="laserasiKala3" class="w-full border rounded p-2">
+                        <option value="">-- Pilih --</option>
+                        <option>Tidak ada</option>
+                        <option>Perineum</option>
+                        <option>Serviks</option>
+                        <option>Vagina</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Atonia Uteri</label>
+                    <select id="atoniaKala3" class="w-full border rounded p-2">
+                        <option value="">-- Pilih --</option>
+                        <option>Ya</option>
+                        <option>Tidak</option>
+                    </select>
+                </div>
+                <div class="col-span-2"><label>Masalah Lain</label><textarea id="masalahKala3"
+                        class="w-full border rounded p-2"></textarea></div>
+                <div class="col-span-2"><label>Penatalaksanaan Masalah Tersebut</label><textarea id="tatalaksanaKala3"
+                        class="w-full border rounded p-2"></textarea></div>
+                <div class="col-span-2"><label>Hasilnya</label><textarea id="hasilKala3"
+                        class="w-full border rounded p-2"></textarea></div>
+            </div>
+            <button id="simpanKala3" class="bg-blue-600 text-white px-4 py-2 rounded mb-8">💾 Simpan KALA III</button>
+
+            <!-- 👶 BAYI BARU LAHIR -->
+            <h3 class="text-lg font-semibold mb-2">👶 Bayi Baru Lahir</h3>
+            <div class="border p-4 rounded-lg mb-4 grid grid-cols-2 gap-4">
+                <div><label class="font-semibold">Jenis Kelamin</label>
+                    <select id="jenisKelamin" class="w-full border rounded p-2">
+                        <option value="">-- Pilih --</option>
+                        <option>Laki-laki</option>
+                        <option>Perempuan</option>
+                    </select>
+                </div>
+                <div><label class="font-semibold">Berat Badan (gram)</label><input type="number" id="beratBayi"
+                        class="w-full border rounded p-2" placeholder="misal: 3200" /></div>
+                <div><label class="font-semibold">Panjang Badan (cm)</label><input type="number" id="panjangBayi"
+                        class="w-full border rounded p-2" placeholder="misal: 49" /></div>
+                <div class="col-span-2"><label class="font-semibold">Penilaian Bayi Lahir</label><textarea
+                        id="penilaianBayi" class="w-full border rounded p-2"
+                        placeholder="Contoh: bayi menangis kuat, tonus otot baik, napas spontan."></textarea></div>
+                <div class="col-span-2"><label class="font-semibold">Kondisi Bayi Lahir</label><textarea
+                        id="kondisiBayi" class="w-full border rounded p-2"
+                        placeholder="Contoh: baik / asfiksia ringan / memerlukan resusitasi singkat / meninggal."></textarea>
+                </div>
+                <div class="col-span-2"><label class="font-semibold">Masalah Lain</label><textarea id="masalahBayi"
+                        class="w-full border rounded p-2"
+                        placeholder="Contoh: hipotermia, BBLR, atau tulis 'tidak ada'"></textarea></div>
+                <div class="col-span-2"><label class="font-semibold">Tindakan / Resusitasi yang
+                        Dilakukan</label><textarea id="tindakanBayi" class="w-full border rounded p-2"
+                        placeholder="Contoh: pengeringan, stimulasi, penghisapan lendir, ventilasi, oksigen."></textarea>
+                </div>
+                <div class="col-span-2"><label class="font-semibold">Hasilnya</label><textarea id="hasilBayi"
+                        class="w-full border rounded p-2"
+                        placeholder="Contoh: bernapas spontan, menangis kuat, warna baik."></textarea></div>
+                <div class="col-span-2"><label class="font-semibold">Waktu Pemberian ASI Pertama</label><input
+                        type="text" id="pemberianASI" class="w-full border rounded p-2"
+                        placeholder="misal: 30 menit setelah lahir" /></div>
+            </div>
+            <button id="simpanBayi" class="bg-blue-600 text-white px-4 py-2 rounded mb-8">💾 Simpan Bayi Baru
+                Lahir</button>
+
+            <!-- 💜 KALA IV -->
+            <h3 class="text-lg font-semibold mb-2">💜 KALA IV (Pemantauan 2 Jam Pertama Postpartum)</h3>
+
+            <!-- 🕒 Tambah Pemantauan -->
+            <h4 class="text-md font-semibold mt-2 mb-2">🕒 Tambah Pemantauan Kala IV</h4>
+            <div id="formPemantauanKala4" class="grid grid-cols-4 gap-4 border p-4 rounded-lg bg-gray-50">
+                <div>
+                    <label>Tanggal & Jam</label>
+                    <input type="datetime-local" id="tglJamPemantauan" class="w-full border rounded p-2" />
+                </div>
+                <div>
+                    <label>Jam ke-</label>
+                    <input type="text" id="jamKePemantauan" class="w-full border rounded p-2"
+                        placeholder="misal: 0.5, 1, 1.5" />
+                </div>
+                <div>
+                    <label>Tekanan Darah (mmHg)</label>
+                    <input type="text" id="tdPemantauan" class="w-full border rounded p-2"
+                        placeholder="misal: 120/80" />
+                </div>
+                <div>
+                    <label>Nadi (/menit)</label>
+                    <input type="number" id="nadiPemantauan" class="w-full border rounded p-2"
+                        placeholder="misal: 80" />
+                </div>
+                <div>
+                    <label>Tinggi Fundus Uteri</label>
+                    <input type="text" id="fundusPemantauan" class="w-full border rounded p-2"
+                        placeholder="misal: 2 jari di bawah pusat" />
+                </div>
+                <div>
+                    <label>Kontraksi Uterus</label>
+                    <select id="kontraksiPemantauan" class="w-full border rounded p-2">
+                        <option value="">-- Pilih --</option>
+                        <option>Baik / Keras</option>
+                        <option>Lemah</option>
+                        <option>Tidak ada</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Kandung Kemih</label>
+                    <select id="kandungPemantauan" class="w-full border rounded p-2">
+                        <option value="">-- Pilih --</option>
+                        <option>Terisi</option>
+                        <option>Kosong</option>
+                        <option>Tidak diperiksa</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Perdarahan (ml)</label>
+                    <input type="number" id="perdarahanPemantauan" class="w-full border rounded p-2"
+                        placeholder="misal: 50" />
+                </div>
+            </div>
+
+            <div class="text-center mt-3">
+                <button id="tambahPemantauanKala4" class="bg-green-600 text-white px-4 py-2 rounded">
+                    ➕ Tambah Pemantauan
+                </button>
+            </div>
+
+            <!-- 📊 Tabel Riwayat -->
+            <h4 class="text-md font-semibold mt-4 mb-2">📊 Riwayat Pemantauan Kala IV</h4>
+            <table class="w-full border text-sm mb-6">
+                <thead class="bg-gray-200">
+                    <tr>
+                        <th class="border p-1">Tanggal & Jam</th>
+                        <th class="border p-1">Jam ke-</th>
+                        <th class="border p-1">TD (mmHg)</th>
+                        <th class="border p-1">Nadi</th>
+                        <th class="border p-1">Fundus</th>
+                        <th class="border p-1">Kontraksi</th>
+                        <th class="border p-1">Kandung Kemih</th>
+                        <th class="border p-1">Perdarahan</th>
+                        <th class="border p-1">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="tabelPemantauanKala4" class="text-center"></tbody>
+            </table>
+
+            <!-- ⚠️ Masalah & Hasil -->
+            <h4 class="text-md font-semibold mb-2">⚠️ Masalah Kala IV</h4>
+            <textarea id="masalahKala4" class="w-full border rounded p-2 mb-4"
+                placeholder="Contoh: perdarahan >500 ml, hipertensi, atonia uteri, dsb."></textarea>
+
+            <h4 class="text-md font-semibold mb-2">🩺 Penatalaksanaan Masalah Tersebut</h4>
+            <textarea id="tatalaksanaKala4" class="w-full border rounded p-2 mb-4"
+                placeholder="Contoh: uterotonika tambahan, pijat fundus, cairan IV cepat, observasi ketat, rujukan."></textarea>
+
+            <h4 class="text-md font-semibold mb-2">✅ Hasilnya</h4>
+            <textarea id="hasilKala4" class="w-full border rounded p-2 mb-6"
+                placeholder="Contoh: uterus kontraksi baik, perdarahan berhenti, kondisi stabil."></textarea>
+
+            <!-- 💾 Tombol Simpan di Paling Bawah -->
+            <div class="text-center mt-6">
+                <button id="simpanKala4" class="bg-blue-600 text-white px-4 py-2 rounded">💾 Simpan KALA IV</button>
+                <button id="cetakGabungan" class="bg-emerald-600 text-white px-4 py-2 rounded ml-2">🖨️ Cetak PDF
+                    Gabungan WHO</button>
+            </div>
+        </div>
+        <!-- =================== TAB 3: RESUSITASI BAYI BARU LAHIR =================== -->
+        <div id="contentResusitasi" class="hidden">
+            <h2 class="text-xl font-semibold mb-4">🩺 Resusitasi Bayi Baru Lahir</h2>
+
+            <!-- Identitas Bayi -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 border p-4 rounded-lg mb-6">
+                <div>
+                    <label class="font-medium">No. RM Bayi</label>
+                    <input type="text" id="noRMBayi" class="w-full border rounded p-2 bg-gray-100" readonly />
+                </div>
+                <div>
+                    <label class="font-medium">Nama Bayi</label>
+                    <input type="text" id="namaBayi" class="w-full border rounded p-2" />
+                </div>
+                <div>
+                    <label class="font-medium">Ruang/Kelas</label>
+                    <input type="text" id="ruangBayi" class="w-full border rounded p-2 bg-gray-100"
+                        value="Perina / Non Kelas" readonly />
+                </div>
+                <div>
+                    <label class="font-medium">Bayi</label>
+                    <select id="tipeBayi" class="w-full border rounded p-2">
+                        <option value="">-- Pilih --</option>
+                        <option>Tunggal</option>
+                        <option>Kembar</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="font-medium">Tanggal Lahir</label>
+                    <input type="date" id="tglLahirBayi" class="w-full border rounded p-2" />
+                </div>
+                <div>
+                    <label class="font-medium">Jam Lahir (WIB)</label>
+                    <input type="time" id="jamLahirBayi" class="w-full border rounded p-2" />
+                </div>
+                <div>
+                    <label class="font-medium">Jenis Kelamin</label>
+                    <select id="jkBayi" class="w-full border rounded p-2">
+                        <option value="">-- Pilih --</option>
+                        <option>Laki-laki</option>
+                        <option>Perempuan</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="font-medium">Kondisi Saat Lahir</label>
+                    <select id="kondisiLahir" class="w-full border rounded p-2">
+                        <option value="">-- Pilih --</option>
+                        <option>Hidup</option>
+                        <option>Meninggal sebelum persalinan</option>
+                        <option>Meninggal dalam persalinan</option>
+                        <option>Meninggal setelah lahir</option>
+                    </select>
+                </div>
+                <div id="kondisiDetail" class="hidden md:col-span-2">
+                    <label class="font-medium">Menit sesudah lahir & Sebab kematian</label>
+                    <input type="text" id="sebabKematian" class="w-full border rounded p-2"
+                        placeholder="contoh: 15 menit setelah lahir - asfiksia berat" />
+                </div>
+            </div>
+
+            <!-- Kehamilan -->
+            <h3 class="font-semibold mb-2">🤰 Kehamilan Ini</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 border p-4 rounded-lg mb-6">
+                <div><label>Term (minggu)</label><input type="number" id="termMinggu"
+                        class="w-full border rounded p-2" /></div>
+                <div><label>Berat Waktu Lahir (gram)</label><input type="number" id="bbLahir"
+                        class="w-full border rounded p-2" /></div>
+                <div><label>Panjang Badan (cm)</label><input type="number" id="pbLahir"
+                        class="w-full border rounded p-2" /></div>
+                <div class="md:col-span-3"><label>Kelainan Kongenital</label><input type="text" id="kelainanKongenital"
+                        class="w-full border rounded p-2" placeholder="Tulis jika ada kelainan bawaan" /></div>
+            </div>
+
+            <!-- Petugas -->
+            <h3 class="font-semibold mb-2">👨‍⚕️ Petugas dan Jenis Persalinan</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 border p-4 rounded-lg mb-6">
+                <div><label>Yang Melakukan Resusitasi</label><input type="text" id="petugasResusitasi"
+                        class="w-full border rounded p-2" /></div>
+                <div><label>Nama Dokter Resusitasi</label><input type="text" id="dokterResusitasi"
+                        class="w-full border rounded p-2" /></div>
+                <div><label>Nama Perawat</label><input type="text" id="perawatResusitasi"
+                        class="w-full border rounded p-2" /></div>
+                <div>
+                    <label>Jenis Persalinan</label>
+                    <select id="jenisPersalinan" class="w-full border rounded p-2">
+                        <option value="">-- Pilih --</option>
+                        <option>Partus Spontan</option>
+                        <option>SC</option>
+                    </select>
+                </div>
+                <div><label>Nama Dokter Sp.OG</label><input type="text" id="dokterSpog"
+                        class="w-full border rounded p-2" /></div>
+                <div id="bidangroup"><label>Nama Bidan</label><input type="text" id="namaBidan"
+                        class="w-full border rounded p-2" /></div>
+            </div>
+
+            <!-- APGAR Score -->
+            <h3 class="text-lg font-semibold mb-2">🧮 APGAR Score</h3>
+            <button id="tambahApgar" class="bg-green-600 text-white px-4 py-2 rounded mb-3">➕ Tambah Observasi
+                APGAR</button>
+
+            <table class="w-full border text-sm mb-4">
+                <thead class="bg-gray-200">
+                    <tr>
+                        <th class="border p-2">Menit</th>
+                        <th class="border p-2">Frekuensi Jantung</th>
+                        <th class="border p-2">Usaha Bernapas</th>
+                        <th class="border p-2">Tonus Otot</th>
+                        <th class="border p-2">Refleks</th>
+                        <th class="border p-2">Warna Kulit</th>
+                        <th class="border p-2">Total</th>
+                        <th class="border p-2">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody id="tabelApgar"></tbody>
+            </table>
+            <!-- Modal Tambah Observasi APGAR -->
+            <div id="modalApgar" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+                <div class="bg-white rounded-2xl shadow-xl w-96 p-6">
+                    <h3 class="text-lg font-semibold mb-4 text-center">➕ Tambah Observasi APGAR</h3>
+
+                    <div class="space-y-2">
+                        <div>
+                            <label>Menit</label>
+                            <input type="number" id="apgarMenit" class="w-full border rounded p-2"
+                                placeholder="misal: 1" />
+                        </div>
+                        <div>
+                            <label>Frekuensi Jantung</label>
+                            <select id="apgarFJ" class="w-full border rounded p-2">
+                                <option value="0">Tidak ada (0)</option>
+                                <option value="1">&lt; 100 (1)</option>
+                                <option value="2">&gt; 100 (2)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label>Usaha Bernapas</label>
+                            <select id="apgarUB" class="w-full border rounded p-2">
+                                <option value="0">Tidak ada (0)</option>
+                                <option value="1">Lambat (1)</option>
+                                <option value="2">Menangis kuat (2)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label>Tonus Otot</label>
+                            <select id="apgarTO" class="w-full border rounded p-2">
+                                <option value="0">Lumpuh (0)</option>
+                                <option value="1">Gerakan sedikit (1)</option>
+                                <option value="2">Gerakan aktif (2)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label>Refleks</label>
+                            <select id="apgarRF" class="w-full border rounded p-2">
+                                <option value="0">Tidak bereaksi (0)</option>
+                                <option value="1">Tubuh kemerahan (1)</option>
+                                <option value="2">Reaksi melawan (2)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label>Warna Kulit</label>
+                            <select id="apgarWK" class="w-full border rounded p-2">
+                                <option value="0">Biru/Pucat (0)</option>
+                                <option value="1">Tangan dan kaki biru (1)</option>
+                                <option value="2">Kemerahan (2)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="text-center mt-4 space-x-2">
+                        <button id="simpanApgar" class="bg-blue-600 text-white px-4 py-2 rounded">💾 Simpan</button>
+                        <button id="batalApgar" class="bg-gray-400 text-white px-4 py-2 rounded">✖️ Batal</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Laporan -->
+            <h3 class="font-semibold mb-2">🩺 Laporan Resusitasi</h3>
+            <textarea id="laporanResusitasi" class="w-full border rounded p-2 mb-4" rows="5"
+                placeholder="Tuliskan laporan atau catatan hasil resusitasi bayi secara ringkas dan jelas."></textarea>
+
+            <!-- Tanda tangan -->
+            <h3 class="font-semibold mb-2">✍️ Tanda Tangan Dokter Resusitasi</h3>
+            <div class="flex items-center gap-3 mb-6">
+                <input type="text" id="sipDokter" class="border rounded p-2 w-1/3" placeholder="Masukkan SIP dokter" />
+                <canvas id="barcodeDokter" class="border rounded p-2"></canvas>
+            </div>
+
+            <!-- Aksi -->
+            <div class="text-center mt-6 flex flex-wrap gap-2 justify-center">
+                <button id="simpanResusitasi" class="bg-blue-600 text-white px-4 py-2 rounded">💾 Simpan
+                    Resusitasi</button>
+                <button id="cetakResusitasi" class="bg-emerald-600 text-white px-4 py-2 rounded">🖨️ Cetak PDF
+                    Resusitasi</button>
+            </div>
+        </div>
+
+        <script>
+            // =================== TABS ===================
+            const tabPartograf = document.getElementById("tabPartograf");
+            const tabCatatan = document.getElementById("tabCatatan");
+            const contentPartograf = document.getElementById("contentPartograf");
+            const contentCatatan = document.getElementById("contentCatatan");
+
+            tabPartograf.addEventListener("click", () => {
+                [tabPartograf, tabCatatan, tabResusitasi].forEach(t => t.classList.remove("tab-active"));
+                tabPartograf.classList.add("tab-active");
+                [contentPartograf, contentCatatan, contentResusitasi].forEach(c => c.classList.add("hidden"));
+                contentPartograf.classList.remove("hidden");
+            });
+            tabCatatan.addEventListener("click", () => {
+                [tabPartograf, tabCatatan, tabResusitasi].forEach(t => t.classList.remove("tab-active"));
+                tabCatatan.classList.add("tab-active");
+                [contentPartograf, contentCatatan, contentResusitasi].forEach(c => c.classList.add("hidden"));
+                contentCatatan.classList.remove("hidden");
+                // Auto isi identitas di catatan
+                const pasien = JSON.parse(localStorage.getItem("pasien")) || {};
+                document.getElementById("noRMCatatan").value = pasien.noRM || "-";
+                document.getElementById("namaIbuCatatan").value = pasien.namaIbu || "-";
+                // Auto-load setiap KALA & bayi
+                autoLoadSections();
+                renderPemantauanKala4();
+            });
+
+            // =================== DATA PASIEN ===================
+            const pasienForm = document.getElementById("pasienForm");
+            const pasienData = JSON.parse(localStorage.getItem("pasien")) || {};
+            document.getElementById("noRM").value = pasienData.noRM || ("RME" + Date.now());
+            ["namaIbu", "tglLahir", "usia", "gpa", "tglMasuk", "jamMasuk", "alamat", "ketubanPecah", "mulesJam"].forEach(id => {
+                const el = document.getElementById(id); if (el) el.value = pasienData[id] || "";
+            });
+            document.getElementById("tglLahir").addEventListener("change", e => {
+                const tgl = new Date(e.target.value);
+                const usia = new Date().getFullYear() - tgl.getFullYear();
+                document.getElementById("usia").value = isFinite(usia) ? usia : "";
+            });
+            document.getElementById("simpanPasien").addEventListener("click", () => {
+                const data = {};
+                [...pasienForm.elements].forEach(el => data[el.id] = el.value);
+                localStorage.setItem("pasien", JSON.stringify(data));
+                alert("✅ Data pasien disimpan!");
+            });
+
+            // =================== OBSERVASI PARTOGRAF ===================
+            const observasiForm = document.getElementById("observasiForm");
+            const tambahObs = document.getElementById("tambahObs");
+            const resetAll = document.getElementById("resetAll");
+            const tabelObs = document.getElementById("tabelObs");
+            let observasiList = JSON.parse(localStorage.getItem("observasi")) || [];
+
+            tambahObs.addEventListener("click", () => {
+                const data = {};
+                [...observasiForm.elements].forEach(el => data[el.id] = el.value);
+                data.id = Date.now();
+                const pb = parseFloat(data.pembukaan || 0);
+                if (pb >= 4 && pb < 7) data.warning = "⚠️ Waspada";
+                if (pb >= 7) data.warning = "🚨 Bertindak";
+                observasiList.push(data);
+                localStorage.setItem("observasi", JSON.stringify(observasiList));
+                renderTabel(); updateGrafik();
+                observasiForm.reset();
+            });
+
+            function renderTabel() {
+                tabelObs.innerHTML = "";
+                observasiList.forEach((obs, i) => {
+                    const warna = obs.warning === "⚠️ Waspada" ? "warning-waspada" :
+                        obs.warning === "🚨 Bertindak" ? "warning-bertindak" : "";
+                    const tr = document.createElement("tr");
+                    tr.className = warna;
+                    tr.innerHTML = `
+          <td class="border p-1">${obs.tglJamObs || ""}</td>
+          <td class="border p-1">${obs.djj || ""}</td>
+          <td class="border p-1">${obs.airKetuban || ""}</td>
+          <td class="border p-1">${obs.penyusupan || ""}</td>
+          <td class="border p-1">${obs.pembukaan || ""} ${obs.warning || ""}</td>
+          <td class="border p-1">${obs.kontraksi || ""}</td>
+          <td class="border p-1">${obs.oksitosin || ""}</td>
+          <td class="border p-1">${obs.obatIV || ""}</td>
+          <td class="border p-1">${obs.nadi || ""}</td>
+          <td class="border p-1">${obs.tdSistolik || ""}/${obs.tdDiastolik || ""}</td>
+          <td class="border p-1">${obs.suhu || ""}</td>
+          <td class="border p-1">${obs.urin || ""}</td>
+          <td class="border p-1 space-x-1">
+            <button class="bg-yellow-400 px-2 py-1 rounded" onclick="editObs(${i})">✏️</button>
+            <button class="bg-red-600 text-white px-2 py-1 rounded" onclick="hapusObs(${i})">🗑️</button>
+          </td>`;
+                    tabelObs.appendChild(tr);
+                });
+            }
+            window.editObs = (i) => {
+                const obs = observasiList[i];
+                for (let k in obs) { if (document.getElementById(k)) document.getElementById(k).value = obs[k]; }
+                observasiList.splice(i, 1);
+                localStorage.setItem("observasi", JSON.stringify(observasiList));
+                renderTabel(); updateGrafik();
+            };
+            window.hapusObs = (i) => {
+                if (confirm("Hapus data observasi ini?")) {
+                    observasiList.splice(i, 1);
+                    localStorage.setItem("observasi", JSON.stringify(observasiList));
+                    renderTabel(); updateGrafik();
+                }
+            };
+            resetAll.addEventListener("click", () => {
+                if (confirm("Yakin hapus semua data?")) {
+                    localStorage.clear();
+                    location.reload();
+                }
+            });
+
+            // =================== GRAFIK ===================
+            function baseOptions(yMin, yMax) {
+                return {
+                    responsive: true, maintainAspectRatio: true, aspectRatio: 2.2,
+                    interaction: { mode: "nearest", intersect: false },
+                    plugins: { legend: { position: "bottom" }, tooltip: { enabled: true } },
+                    scales: {
+                        x: {
+                            ticks: { autoSkip: false, maxRotation: 0, minRotation: 0, font: { size: 10 } },
+                            grid: { color: "rgba(220,220,220,0.3)" }
+                        },
+                        y: { min: yMin, max: yMax, grid: { color: "rgba(200,200,200,0.3)" } }
+                    }
+                };
+            }
+            const chartDJJ = new Chart(document.getElementById("grafikDJJ"), {
+                type: "line",
+                data: {
+                    labels: [], datasets: [
+                        { label: "DJJ", data: [], borderColor: "#2563EB", borderWidth: 2, pointRadius: 3, tension: 0.3 },
+                        // zona hijau: isi area sampai 160, lalu garis 120 (pakai dataset tipis)
+                        { label: "Zona ≤160", data: [], backgroundColor: "rgba(34,197,94,0.15)", borderWidth: 0, fill: true },
+                        { label: "Batas 120", data: [], borderColor: "rgba(34,197,94,0.8)", borderDash: [6, 6], pointRadius: 0 }
+                    ]
+                },
+                options: baseOptions(80, 200)
+            });
+            const chartPembukaan = new Chart(document.getElementById("grafikPembukaan"), {
+                type: "line",
+                data: {
+                    labels: [], datasets: [
+                        { label: "Pembukaan (cm)", data: [], borderColor: "#DC2626", borderWidth: 2, pointRadius: 3, tension: 0.3 },
+                        { label: "Alert Line", data: [], borderColor: "orange", borderDash: [5, 5], pointRadius: 0 },
+                        { label: "Action Line", data: [], borderColor: "red", borderDash: [5, 5], pointRadius: 0 }
+                    ]
+                },
+                options: baseOptions(0, 10)
+            });
+            const chartVital = new Chart(document.getElementById("grafikVital"), {
+                type: "line",
+                data: {
+                    labels: [], datasets: [
+                        { label: "TD Sistolik", data: [], borderColor: "#B91C1C", borderWidth: 2, tension: 0.3 },
+                        { label: "TD Diastolik", data: [], borderColor: "#EF4444", borderDash: [5, 5], tension: 0.3 },
+                        { label: "Nadi", data: [], borderColor: "#2563EB", borderWidth: 2, tension: 0.3 },
+                        { label: "Suhu (×10)", data: [], borderColor: "#16A34A", borderWidth: 2, tension: 0.3 }
+                    ]
+                },
+                options: { ...baseOptions(0, 200), aspectRatio: 1.6 }
+            });
+
+            function genLine(len, start, end) {
+                if (len <= 1) return Array(len).fill(start);
+                const step = (end - start) / (len - 1);
+                return Array.from({ length: len }, (_, i) => start + i * step);
+            }
+            function updateGrafik() {
+                const labels = observasiList.map(o => o.tglJamObs || "");
+                const djjData = observasiList.map(o => o.djj ? parseInt(o.djj) : null);
+                const pbkData = observasiList.map(o => o.pembukaan ? parseFloat(o.pembukaan) : null);
+                const tdS = observasiList.map(o => o.tdSistolik ? parseInt(o.tdSistolik) : null);
+                const tdD = observasiList.map(o => o.tdDiastolik ? parseInt(o.tdDiastolik) : null);
+                const nadi = observasiList.map(o => o.nadi ? parseInt(o.nadi) : null);
+                const suhu = observasiList.map(o => o.suhu ? parseFloat(o.suhu) * 10 : null);
+
+                // DJJ
+                chartDJJ.data.labels = labels;
+                chartDJJ.data.datasets[0].data = djjData;
+                chartDJJ.data.datasets[1].data = Array(labels.length).fill(160); // fill area up to 160
+                chartDJJ.data.datasets[2].data = Array(labels.length).fill(120); // line at 120
+                chartDJJ.update();
+
+                // Pembukaan: WHO alert/action (garis miring sederhana)
+                chartPembukaan.data.labels = labels;
+                chartPembukaan.data.datasets[0].data = pbkData;
+                chartPembukaan.data.datasets[1].data = genLine(labels.length, 0, 10);
+                chartPembukaan.data.datasets[2].data = genLine(labels.length, 2, 10); // action sejajar di kanan
+                chartPembukaan.update();
+
+                // Vital
+                chartVital.data.labels = labels;
+                chartVital.data.datasets[0].data = tdS;
+                chartVital.data.datasets[1].data = tdD;
+                chartVital.data.datasets[2].data = nadi;
+                chartVital.data.datasets[3].data = suhu;
+                chartVital.update();
+            }
+
+            // =================== SAVE PER KALA (CATATAN TAB) ===================
+            function simpanData(ids, key) {
+                const data = {};
+                ids.forEach(id => { const el = document.getElementById(id); data[id] = el ? el.value : ""; });
+                localStorage.setItem(key, JSON.stringify(data));
+                alert(`✅ Data ${key.toUpperCase()} disimpan!`);
+            }
+            function loadData(ids, key) {
+                const data = JSON.parse(localStorage.getItem(key) || "{}");
+                ids.forEach(id => { const el = document.getElementById(id); if (el && data[id] !== undefined) el.value = data[id]; });
+            }
+            function autoLoadSections() {
+                loadData(["patogram", "masalahKala1", "tatalaksanaKala1", "hasilKala1"], "kala1");
+                loadData(["pendampingKala2", "episiotomi", "gawatJanin", "distosiaBahu", "tindakanKala2", "hasilKala2", "masalahKala2"], "kala2");
+                loadData(["lamaKala3", "perdarahanKala3", "oksitosinKala3", "oksitosinUlangKala3", "taliPusat", "masaseFundus", "plasentaLengkap", "plasenta30menit", "laserasiKala3", "atoniaKala3", "masalahKala3", "tatalaksanaKala3", "hasilKala3"], "kala3");
+                loadData(["jenisKelamin", "beratBayi", "panjangBayi", "penilaianBayi", "kondisiBayi", "masalahBayi", "tindakanBayi", "hasilBayi", "pemberianASI"], "bayiLahir");
+                loadData(["waktuKala4", "waktuSelesaiKala4", "tinggiFundus", "kontraksiUterus", "tandaVitalKala4", "perdarahanKala4", "kandungKemihKala4", "lukaKala4", "masalahKala4", "tatalaksanaKala4", "hasilKala4"], "kala4");
+            }
+            // Tombol simpan per KALA
+            document.getElementById("simpanKala1").addEventListener("click", () =>
+                simpanData(["patogram", "masalahKala1", "tatalaksanaKala1", "hasilkala1"], "kala1")
+            );
+            document.getElementById("simpanKala2").addEventListener("click", () =>
+                simpanData(["pendampingKala2", "episiotomi", "gawatJanin", "distosiaBahu", "tindakanKala2", "hasilKala2", "masalahKala2"], "kala2")
+            );
+            document.getElementById("simpanKala3").addEventListener("click", () =>
+                simpanData(["lamaKala3", "perdarahanKala3", "oksitosinKala3", "oksitosinUlangKala3", "taliPusat", "masaseFundus", "plasentaLengkap", "plasenta30menit", "laserasiKala3", "atoniaKala3", "masalahKala3", "tatalaksanaKala3", "hasilKala3"], "kala3")
+            );
+            document.getElementById("simpanBayi").addEventListener("click", () =>
+                simpanData(["jenisKelamin", "beratBayi", "panjangBayi", "penilaianBayi", "kondisiBayi", "masalahBayi", "tindakanBayi", "hasilBayi", "pemberianASI"], "bayiLahir")
+            );
+            // 💾 SIMPAN KALA IV – Versi Baru (tombol di paling bawah)
+            document.getElementById("simpanKala4").addEventListener("click", () => {
+                simpanData(
+                    [
+                        "masalahKala4",
+                        "tatalaksanaKala4",
+                        "hasilKala4"
+                    ],
+                    "kala4"
+                );
+            });
+
+            // =================== KALA IV – PEMANTAUAN BERKALA ===================
+            const tambahPemantauanBtn = document.getElementById("tambahPemantauanKala4");
+            const tabelPemantauanBody = document.getElementById("tabelPemantauanKala4");
+            let pemantauanKala4 = JSON.parse(localStorage.getItem("pemantauanKala4")) || [];
+
+            tambahPemantauanBtn.addEventListener("click", () => {
+                const data = {
+                    tanggalJam: document.getElementById("tglJamPemantauan").value,
+                    jamKe: document.getElementById("jamKePemantauan").value,
+                    td: document.getElementById("tdPemantauan").value,
+                    nadi: document.getElementById("nadiPemantauan").value,
+                    fundus: document.getElementById("fundusPemantauan").value,
+                    kontraksi: document.getElementById("kontraksiPemantauan").value,
+                    kandung: document.getElementById("kandungPemantauan").value,
+                    perdarahan: document.getElementById("perdarahanPemantauan").value,
+                };
+                if (!data.tanggalJam) { alert("⚠️ Tanggal & Jam harus diisi!"); return; }
+                pemantauanKala4.push(data);
+                localStorage.setItem("pemantauanKala4", JSON.stringify(pemantauanKala4));
+                renderPemantauanKala4();
+                alert("✅ Pemantauan disimpan!");
+            });
+
+            function renderPemantauanKala4() {
+                tabelPemantauanBody.innerHTML = "";
+                pemantauanKala4.forEach((p, i) => {
+                    const row = `
+          <tr>
+            <td class="border p-1">${p.tanggalJam}</td>
+            <td class="border p-1">${p.jamKe}</td>
+            <td class="border p-1">${p.td}</td>
+            <td class="border p-1">${p.nadi}</td>
+            <td class="border p-1">${p.fundus}</td>
+            <td class="border p-1">${p.kontraksi}</td>
+            <td class="border p-1">${p.kandung}</td>
+            <td class="border p-1">${p.perdarahan}</td>
+            <td class="border p-1 space-x-1">
+              <button class="bg-yellow-400 hover:bg-yellow-500 px-2 py-1 rounded" onclick="editPemantauanKala4(${i})">✏️</button>
+              <button class="bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded" onclick="hapusPemantauanKala4(${i})">🗑️</button>
+            </td>
+          </tr>`;
+                    tabelPemantauanBody.insertAdjacentHTML("beforeend", row);
+                });
+            }
+            window.editPemantauanKala4 = (index) => {
+                const d = pemantauanKala4[index];
+                document.getElementById("tglJamPemantauan").value = d.tanggalJam;
+                document.getElementById("jamKePemantauan").value = d.jamKe;
+                document.getElementById("tdPemantauan").value = d.td;
+                document.getElementById("nadiPemantauan").value = d.nadi;
+                document.getElementById("fundusPemantauan").value = d.fundus;
+                document.getElementById("kontraksiPemantauan").value = d.kontraksi;
+                document.getElementById("kandungPemantauan").value = d.kandung;
+                document.getElementById("perdarahanPemantauan").value = d.perdarahan;
+                // remove old row
+                pemantauanKala4.splice(index, 1);
+                localStorage.setItem("pemantauanKala4", JSON.stringify(pemantauanKala4));
+                renderPemantauanKala4();
+            };
+            window.hapusPemantauanKala4 = (index) => {
+                if (confirm("Yakin ingin menghapus data ini?")) {
+                    pemantauanKala4.splice(index, 1);
+                    localStorage.setItem("pemantauanKala4", JSON.stringify(pemantauanKala4));
+                    renderPemantauanKala4();
+                }
+            };
+
+            // INIT
+            renderTabel(); updateGrafik();
+
+            // =================== CETAK PDF GABUNGAN WHO ===================
+            document.getElementById("cetakGabungan").addEventListener("click", () => {
+                const pasien = JSON.parse(localStorage.getItem("pasien")) || {};
+                const obs = JSON.parse(localStorage.getItem("observasi")) || [];
+                const kala1 = JSON.parse(localStorage.getItem("kala1")) || {};
+                const kala2 = JSON.parse(localStorage.getItem("kala2")) || {};
+                const kala3 = JSON.parse(localStorage.getItem("kala3")) || {};
+                const bayi = JSON.parse(localStorage.getItem("bayiLahir")) || {};
+                const kala4 = JSON.parse(localStorage.getItem("kala4")) || {};
+                const pemantauanKala4 = JSON.parse(localStorage.getItem("pemantauanKala4")) || [];
+
+                // Ambil grafik jadi gambar
+                const djjImg = document.getElementById("grafikDJJ").toDataURL();
+                const pbImg = document.getElementById("grafikPembukaan").toDataURL();
+                const vtImg = document.getElementById("grafikVital").toDataURL();
+
+                const layout = `
+  <div style="font-family:Arial; padding:10px;">
+    <h3 style="text-align:center; margin-bottom:4px;">FORM PARTOGRAF WHO DIGITAL</h3>
+    <table style="width:100%; font-size:11px; border-collapse:collapse;">
+      <tr><td>Nama Ibu</td><td>: ${pasien.namaIbu || ""}</td><td>No. RM</td><td>: ${pasien.noRM || ""}</td></tr>
+      <tr><td>Usia</td><td>: ${pasien.usia || ""}</td><td>Alamat</td><td>: ${pasien.alamat || ""}</td></tr>
+      <tr><td>G/P/A</td><td>: ${pasien.gpa || ""}</td><td>Tgl Masuk</td><td>: ${pasien.tglMasuk || ""}</td></tr>
+    </table>
+    <hr>
+    <div style="display:flex; gap:5px;">
+      <div style="flex:1;">
+        <h4>📋 Observasi Partograf</h4>
+        <table border="1" style="width:100%; font-size:10px; border-collapse:collapse; text-align:center;">
+          <thead style="background:#f3f4f6;">
+            <tr>
+              <th>Tgl & Jam</th><th>DJJ</th><th>Ketuban</th><th>Pembukaan</th>
+              <th>Nadi</th><th>TD</th><th>Suhu</th><th>Urin</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${obs.map(o => `
+              <tr>
+                <td>${o.tglJamObs || ""}</td>
+                <td>${o.djj || ""}</td>
+                <td>${o.airKetuban || ""}</td>
+                <td>${o.pembukaan || ""}</td>
+                <td>${o.nadi || ""}</td>
+                <td>${o.tdSistolik || ""}/${o.tdDiastolik || ""}</td>
+                <td>${o.suhu || ""}</td>
+                <td>${o.urin || ""}</td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      </div>
+      <div style="flex:1; text-align:center;">
+        <img src="${djjImg}" style="width:100%; border:1px solid #ccc;">
+        <img src="${pbImg}" style="width:100%; border:1px solid #ccc;">
+        <img src="${vtImg}" style="width:100%; border:1px solid #ccc;">
+      </div>
+    </div>
+
+    <hr style="margin:10px 0;">
+    <h4 style="text-align:center;">📑 CATATAN PERSALINAN (KALA I–IV & BAYI BARU LAHIR)</h4>
+    <div style="font-size:11px;">
+      <h5>🩷 KALA I</h5>
+      <p>Patogram melewati garis waspada: ${kala1.patogram || "-"}</p>
+      <p>Masalah: ${kala1.masalahKala1 || "-"}</p>
+      <p>Penatalaksanaan: ${kala1.tatalaksanaKala1 || "-"}</p>
+      <p>Hasil: ${kala1.hasilKala1 || "-"}</p>
+
+      <h5>💛 KALA II</h5>
+      <p>Pendamping: ${kala2.pendampingKala2 || "-"}</p>
+      <p>Distosia Bahu: ${kala2.distosiaBahu || "-"}</p>
+      <p>Masalah: ${kala2.masalahKala2 || "-"}</p>
+      <p>Tindakan: ${kala2.tindakanKala2 || "-"}</p>
+      <p>Hasil: ${kala2.hasilKala2 || "-"}</p>
+
+      <h5>💚 KALA III</h5>
+      <p>Lama: ${kala3.lamaKala3 || "-"} menit</p>
+      <p>Oksitosin: ${kala3.oksitosinKala3 || "-"}</p>
+      <p>Masalah: ${kala3.masalahKala3 || "-"}</p>
+      <p>Penatalaksanaan: ${kala3.tatalaksanaKala3 || "-"}</p>
+      <p>Hasil: ${kala3.hasilKala3 || "-"}</p>
+
+      <h5>👶 Bayi Baru Lahir</h5>
+      <p>Jenis Kelamin: ${bayi.jenisKelamin || "-"} | BB: ${bayi.beratBayi || "-"}g | PB: ${bayi.panjangBayi || "-"}cm</p>
+      <p>Penilaian: ${bayi.penilaianBayi || "-"}</p>
+      <p>Kondisi: ${bayi.kondisiBayi || "-"}</p>
+      <p>Masalah: ${bayi.masalahBayi || "-"}</p>
+      <p>Tindakan: ${bayi.tindakanBayi || "-"}</p>
+      <p>Hasil: ${bayi.hasilBayi || "-"}</p>
+
+      <h5>💜 KALA IV</h5>
+      <table border="1" style="width:100%; font-size:10px; border-collapse:collapse; text-align:center;">
+        <thead style="background:#f3f4f6;">
+          <tr><th>Tgl & Jam</th><th>Jam ke</th><th>TD</th><th>Nadi</th><th>Fundus</th><th>Kontraksi</th><th>Kandung</th><th>Perdarahan</th></tr>
+        </thead>
+        <tbody>
+          ${pemantauanKala4.map(p => `
+          <tr>
+            <td>${p.tanggalJam}</td><td>${p.jamKe}</td><td>${p.td}</td><td>${p.nadi}</td>
+            <td>${p.fundus}</td><td>${p.kontraksi}</td><td>${p.kandung}</td><td>${p.perdarahan}</td>
+          </tr>`).join("")}
+        </tbody>
+      </table>
+      <p>Masalah: ${kala4.masalahKala4 || "-"}</p>
+      <p>Penatalaksanaan: ${kala4.tatalaksanaKala4 || "-"}</p>
+      <p>Hasil: ${kala4.hasilKala4 || "-"}</p>
+    </div>
+
+    <div style="display:flex;justify-content:space-between;margin-top:10px;font-size:11px;">
+      <div style="text-align:center;flex:1;">_________________________<br>Penolong Persalinan</div>
+      <div style="text-align:center;flex:1;">_________________________<br>Pasien / Keluarga</div>
+      <div style="text-align:center;flex:1;">_________________________<br>Petugas Verifikator</div>
+    </div>
+  </div>`;
+
+                html2pdf()
+                    .set({
+                        margin: 0.2,
+                        filename: `Partograf_WHO_${new Date().toISOString().slice(0, 10)}.pdf`,
+                        image: { type: "jpeg", quality: 0.98 },
+                        html2canvas: { scale: 2 },
+                        jsPDF: { unit: "in", format: "a4", orientation: "landscape" }
+                    })
+                    .from(layout)
+                    .save();
+            });
+
+            // ==== TAB RESUSITASI HANDLER BARU ====
+            const tabResusitasi = document.getElementById("tabResusitasi");
+            const contentResusitasi = document.getElementById("contentResusitasi");
+
+            tabResusitasi.addEventListener("click", () => {
+                [tabPartograf, tabCatatan].forEach(t => t.classList.remove("tab-active"));
+                tabResusitasi.classList.add("tab-active");
+                [contentPartograf, contentCatatan].forEach(c => c.classList.add("hidden"));
+                contentResusitasi.classList.remove("hidden");
+                // Auto-load jika pernah disimpan
+                const resus = JSON.parse(localStorage.getItem("resusitasiBayi")) || {};
+                for (const k in resus) {
+                    if (document.getElementById(k)) {
+                        if (typeof resus[k] === "boolean") document.getElementById(k).checked = resus[k];
+                        else document.getElementById(k).value = resus[k];
+                    }
+                }
+            });
+            // ==== MODAL APGAR ====
+            const modalApgar = document.getElementById("modalApgar");
+            const btnTambahApgar = document.getElementById("tambahApgar");
+            const btnSimpanApgar = document.getElementById("simpanApgar");
+            const btnBatalApgar = document.getElementById("batalApgar");
+
+            let apgarList = JSON.parse(localStorage.getItem("apgarList")) || [];
+            const tabelApgar = document.getElementById("tabelApgar");
+
+            // buka modal
+            btnTambahApgar.addEventListener("click", () => {
+                modalApgar.classList.remove("hidden");
+                modalApgar.classList.add("flex");
+            });
+
+            // batal
+            btnBatalApgar.addEventListener("click", () => {
+                modalApgar.classList.add("hidden");
+                modalApgar.classList.remove("flex");
+            });
+
+            // simpan
+            btnSimpanApgar.addEventListener("click", () => {
+                const menit = document.getElementById("apgarMenit").value;
+                const fj = parseInt(document.getElementById("apgarFJ").value);
+                const ub = parseInt(document.getElementById("apgarUB").value);
+                const to = parseInt(document.getElementById("apgarTO").value);
+                const rf = parseInt(document.getElementById("apgarRF").value);
+                const wk = parseInt(document.getElementById("apgarWK").value);
+                if (!menit) return alert("⚠️ Menit observasi belum diisi!");
+                const total = fj + ub + to + rf + wk;
+                apgarList.push({ menit, fj, ub, to, rf, wk, total });
+                localStorage.setItem("apgarList", JSON.stringify(apgarList));
+                renderApgar();
+                modalApgar.classList.add("hidden");
+                modalApgar.classList.remove("flex");
+            });
+
+            // render tabel apgar (dengan interpretasi & warna)
+            function renderApgar() {
+                tabelApgar.innerHTML = "";
+
+                // fungsi interpretasi skor
+                const interpretasiApgar = (total) => {
+                    if (total <= 3)
+                        return {
+                            label: "Asfiksia Berat",
+                            warna: "#FCA5A5", // merah
+                            intervensi: "⚠️ Gawat: Bayi dalam kondisi gawat dan membutuhkan resusitasi segera."
+                        };
+                    if (total <= 6)
+                        return {
+                            label: "Asfiksia Sedang",
+                            warna: "#FDE68A", // kuning
+                            intervensi: "⚠️ Kurang Sehat: Bayi bugar atau kurang sehat dan mungkin memerlukan bantuan pernapasan."
+                        };
+                    return {
+                        label: "Bayi Sehat",
+                        warna: "#BBF7D0", // hijau
+                        intervensi: "✅ Observasi rutin."
+                    };
+                };
+
+                // jika belum ada data
+                if (apgarList.length === 0) {
+                    tabelApgar.innerHTML = `<tr><td colspan="10" class="border p-2 text-center">Belum ada data APGAR</td></tr>`;
+                    return;
+                }
+
+                // buat header tabel baru (biar muncul kolom tambahan)
+                const header = tabelApgar.previousElementSibling;
+                if (header && !header.querySelector(".interpretasi")) {
+                    header.innerHTML = `
+      <tr>
+        <th class="border p-2">Menit</th>
+        <th class="border p-2">Frekuensi Jantung</th>
+        <th class="border p-2">Usaha Bernapas</th>
+        <th class="border p-2">Tonus Otot</th>
+        <th class="border p-2">Refleks</th>
+        <th class="border p-2">Warna Kulit</th>
+        <th class="border p-2">Total</th>
+        <th class="border p-2 interpretasi">Interpretasi</th>
+        <th class="border p-2">Intervensi / Keterangan</th>
+        <th class="border p-2">Aksi</th>
+      </tr>`;
+                }
+
+                // isi baris tabel
+                apgarList.forEach((a, i) => {
+                    const iApgar = interpretasiApgar(a.total);
+                    const tr = document.createElement("tr");
+                    tr.style.background = iApgar.warna;
+                    tr.innerHTML = `
+      <td class="border p-1">${a.menit}</td>
+      <td class="border p-1">${a.fj}</td>
+      <td class="border p-1">${a.ub}</td>
+      <td class="border p-1">${a.to}</td>
+      <td class="border p-1">${a.rf}</td>
+      <td class="border p-1">${a.wk}</td>
+      <td class="border p-1 font-bold">${a.total}</td>
+      <td class="border p-1 font-semibold">${iApgar.label}</td>
+      <td class="border p-1">${iApgar.intervensi}</td>
+      <td class="border p-1"><button class="bg-red-600 text-white px-2 py-1 rounded" onclick="hapusApgar(${i})">🗑️</button></td>
+    `;
+                    tabelApgar.appendChild(tr);
+                });
+            }
+            window.hapusApgar = (i) => {
+                apgarList.splice(i, 1);
+                localStorage.setItem("apgarList", JSON.stringify(apgarList));
+                renderApgar();
+            };
+            renderApgar();
+
+            // ==== SIMPAN RESUSITASI BARU ====
+            document.getElementById("simpanResusitasi").addEventListener("click", () => {
+                let noRM = document.getElementById("noRMBayi").value;
+                if (!noRM) noRM = "BRM-" + Date.now();
+
+                const jamLahirValue = document.getElementById("jamLahirBayi").value;
+                const data = {
+                    noRMBayi: noRM,
+                    namaBayi: document.getElementById("namaBayi").value,
+                    ruangBayi: document.getElementById("ruangBayi").value,
+                    tipeBayi: document.getElementById("tipeBayi").value,
+                    tglLahirBayi: document.getElementById("tglLahirBayi").value,
+                    jamLahirBayi: jamLahirValue ? jamLahirValue + " WIB" : "",
+                    jkBayi: document.getElementById("jkBayi").value,
+                    kondisiLahir: document.getElementById("kondisiLahir").value,
+                    sebabKematian: document.getElementById("sebabKematian").value,
+                    termMinggu: document.getElementById("termMinggu").value,
+                    bbLahir: document.getElementById("bbLahir").value,
+                    pbLahir: document.getElementById("pbLahir").value,
+                    kelainanKongenital: document.getElementById("kelainanKongenital").value,
+                    petugasResusitasi: document.getElementById("petugasResusitasi").value,
+                    dokterResusitasi: document.getElementById("dokterResusitasi").value,
+                    sipDokter: document.getElementById("sipDokter").value,
+                    perawatResusitasi: document.getElementById("perawatResusitasi").value,
+                    jenisPersalinan: document.getElementById("jenisPersalinan").value,
+                    dokterSpog: document.getElementById("dokterSpog").value,
+                    namaBidan: document.getElementById("namaBidan").value,
+                    laporanResusitasi: document.getElementById("laporanResusitasi").value,
+                    apgarList: JSON.parse(localStorage.getItem("apgarList")) || []
+                };
+
+                localStorage.setItem("resusitasiBayi", JSON.stringify(data));
+                document.getElementById("noRMBayi").value = noRM;
+                alert("✅ Data resusitasi bayi disimpan!");
+            });
+
+            document.getElementById("cetakResusitasi").addEventListener("click", () => {
+                const data = JSON.parse(localStorage.getItem("resusitasiBayi")) || {};
+                const apgarList = JSON.parse(localStorage.getItem("apgarList")) || [];
+                // === Fungsi interpretasi skor APGAR ===
+                const interpretasiApgar = (total) => {
+                    if (total <= 3)
+                        return {
+                            label: "Asfiksia Berat",
+                            warna: "#FCA5A5",
+                            intervensi:
+                                "⚠️ Gawat: Bayi dalam kondisi gawat dan membutuhkan resusitasi segera."
+                        };
+                    if (total <= 6)
+                        return {
+                            label: "Asfiksia Sedang",
+                            warna: "#FDE68A",
+                            intervensi:
+                                "⚠️ Kurang Sehat: Bayi bugar atau kurang sehat dan mungkin memerlukan bantuan pernapasan."
+                        };
+                    return {
+                        label: "Bayi Sehat",
+                        warna: "#BBF7D0",
+                        intervensi: "✅ Observasi rutin."
+                    };
+                };
+
+                // === LAYOUT LAPORAN ===
+                const layout = `
+  <div style="font-family: Arial, sans-serif; font-size: 12px; width: 100%; min-height: 29.7cm; box-sizing: border-box; padding: 1cm 1.5cm;">
+
+    <div style="text-align: center; border-bottom: 2px solid #000; padding-bottom: 4px;">
+      <h2 style="margin: 0; font-size: 16px;">🏥 RUMAH SAKIT UMUM PURI ASIH</h2>
+      <p style="margin: 0; font-size: 11px;">Jl. Raya Jatisari No. 88, Kabupaten Karawang, Jawa Barat</p>
+      <p style="margin: 0; font-size: 11px;">Telp. (0267) 1234567 | Email: rsupuriasih@gmail.com</p>
+    </div>
+
+    <h3 style="text-align: center; margin: 8px 0 6px 0; border-bottom: 1px solid #999; padding-bottom: 3px;">
+      📋 LAPORAN RESUSITASI BAYI BARU LAHIR
+    </h3>
+
+    <table style="width: 100%; border-collapse: collapse; line-height: 1.5;">
+      <tr><td><b>No. RM Bayi</b></td><td>${data.noRMBayi || "-"}</td><td><b>Nama Bayi</b></td><td>${data.namaBayi || "-"}</td></tr>
+      <tr><td><b>Jenis Kelamin</b></td><td>${data.jkBayi || "-"}</td><td><b>Ruang/Kelas</b></td><td>${data.ruangBayi || "-"}</td></tr>
+      <tr><td><b>Bayi</b></td><td>${data.tipeBayi || "-"}</td><td><b>Kondisi Saat Lahir</b></td><td>${data.kondisiLahir || "-"}</td></tr>
+      <tr><td><b>Tanggal Lahir</b></td><td>${data.tglLahirBayi || "-"}</td><td><b>Jam Lahir</b></td><td>${data.jamLahirBayi || "-"}</td></tr>
+    </table>
+
+    <h4 style="margin-top: 10px; border-bottom: 1px solid #ddd;">🤰 Kehamilan Ini</h4>
+    <table style="width: 100%; border-collapse: collapse;">
+      <tr><td>Usia Kehamilan</td><td>${data.termMinggu || "-"} minggu</td></tr>
+      <tr><td>Berat Saat Lahir</td><td>${data.bbLahir || "-"} gram</td></tr>
+      <tr><td>Panjang Badan</td><td>${data.pbLahir || "-"} cm</td></tr>
+      <tr><td>Kelainan Kongenital</td><td>${data.kelainanKongenital || "-"}</td></tr>
+    </table>
+
+    <h4 style="margin-top: 10px; border-bottom: 1px solid #ddd;">👨‍⚕️ Petugas & Jenis Persalinan</h4>
+    <table style="width: 100%; border-collapse: collapse;">
+      <tr><td>Yang Melakukan Resusitasi:</td><td>${data.petugasResusitasi || "-"}</td></tr>
+      <tr><td>Dokter Resusitasi:</td><td>${data.dokterResusitasi || "-"}</td></tr>
+      <tr><td>Perawat Resusitasi:</td><td>${data.perawatResusitasi || "-"}</td></tr>
+      <tr><td>Jenis Persalinan:</td><td>${data.jenisPersalinan || "-"}</td></tr>
+      <tr><td>Dokter Sp.OG :</td><td>${data.dokterSpog || "-"}</td></tr>
+      <tr><td>Nama Bidan :</td><td>${data.namaBidan || "-"}<td></tr>
+    </table>
+
+    <h4 style="margin-top: 10px; border-bottom: 1px solid #ddd;">🧮 APGAR Score</h4>
+    <table border="1" style="width: 100%; font-size: 11px; border-collapse: collapse; text-align: center;">
+      <thead style="background: #f3f4f6;">
+        <tr>
+          <th>Menit</th>
+          <th>Frekuensi Jantung</th>
+          <th>Usaha Bernapas</th>
+          <th>Tonus Otot</th>
+          <th>Refleks</th>
+          <th>Warna Kulit</th>
+          <th>Total</th>
+          <th>Interpretasi</th>
+          <th>Intervensi/Keterangan</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${apgarList.length > 0
+                        ? apgarList
+                            .map((a) => {
+                                const i = interpretasiApgar(a.total);
+                                return `
+                <tr style="background:${i.warna};">
+                  <td>${a.menit}</td>
+                  <td>${a.fj}</td>
+                  <td>${a.ub}</td>
+                  <td>${a.to}</td>
+                  <td>${a.rf}</td>
+                  <td>${a.wk}</td>
+                  <td><b>${a.total}</b></td>
+                  <td><b>${i.label}</b></td>
+                  <td>${i.intervensi}</td>
+                </tr>`;
+                            })
+                            .join("")
+                        : "<tr><td colspan='9'>Belum ada data APGAR</td></tr>"}
+      </tbody>
+    </table>
+
+    <h4 style="margin-top: 10px; border-bottom: 1px solid #ddd;">🩺 Laporan Resusitasi</h4>
+    <div style="border: 1px solid #ccc; background: #fafafa; border-radius: 6px; padding: 8px; white-space: pre-wrap;">
+      ${data.laporanResusitasi || "-"}
+    </div>
+
+    <div style="display: flex; justify-content: space-between; margin-top: 30px; text-align: center;">
+      <div style="flex: 1;">
+        <b>Dokter Resusitasi</b><br><br><br>
+        <u>${data.dokterResusitasi || "-"}</u><br>
+        SIP: ${data.sipDokter || "<i>Belum diisi</i>"}
+      </div>
+      <div style="flex: 1;">
+        <b>Perawat Pendamping</b><br><br><br>
+        <u>${data.perawatResusitasi || "-"}</u>
+      </div>
+    </div>
+
+    <div style="margin-top: 20px; text-align: center; font-size: 10px; color: gray;">
+      Dicetak otomatis dari Sistem RME RSU Puri Asih – ${new Date().toLocaleString("id-ID")}
+    </div>
+  </div>`;
+
+                // === CETAK PDF ===
+                html2pdf()
+                    .set({
+                        margin: 0,
+                        filename: `Laporan_Resusitasi_${data.noRMBayi || "bayi"}.pdf`,
+                        image: { type: "jpeg", quality: 1 },
+                        html2canvas: {
+                            scale: 2,
+                            useCORS: true,
+                            scrollY: 0,
+                            windowWidth: document.documentElement.scrollWidth,
+                            windowHeight: document.documentElement.scrollHeight
+                        },
+                        jsPDF: { unit: "cm", format: "a4", orientation: "portrait" },
+                        pagebreak: { mode: ["avoid-all", "css", "legacy"] }
+                    })
+                    .from(layout)
+                    .save();
+            });
+
+        </script>
+</body>
+
+</html>
